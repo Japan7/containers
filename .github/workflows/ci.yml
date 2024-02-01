@@ -35,17 +35,12 @@ jobs:
             repo: dakara-server
             branch: master
             plateforms: linux/amd64,linux/arm64
-          - owner: odrling
-            repo: filestash
-            branch: subs
-            plateforms: linux/amd64
-            dockerfile: docker/Dockerfile
-          - owner: odrling
-            repo: syncplay
-            branch: master
-            plateforms: linux/amd64,linux/arm64
           - owner: mesosphere
             repo: traefik-forward-auth
+            branch: master
+            plateforms: linux/amd64,linux/arm64
+          - owner: odrling
+            repo: syncplay
             branch: master
             plateforms: linux/amd64,linux/arm64
 
