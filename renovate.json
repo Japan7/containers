@@ -14,5 +14,17 @@
       "automergeType": "branch",
       "excludePackageNames": ["python"]
     }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["^\\.github\\/workflows\\/[^/]+\\.ya?ml$"],
+      "matchStrings": [
+        "owner: (?<owner>\\S+)\\s+repo: (?<repo>\\S+)\\s+branch: (?<currentValue>\\S+)\\s+ref: (?<currentDigest>\\S+)"
+      ],
+      "depNameTemplate": "{{{owner}}}/{{{repo}}}",
+      "packageNameTemplate": "https://github.com/{{{owner}}}/{{{repo}}}",
+      "datasourceTemplate": "git-refs"
+    }
   ]
 }
