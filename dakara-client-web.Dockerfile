@@ -5,10 +5,7 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM node:lts-alpine
-ENV NODE_ENV=production
+FROM svenstaro/miniserve:alpine
 WORKDIR /app
-RUN npm install -g serve
 COPY --from=builder /src/build .
-EXPOSE 3000
-ENTRYPOINT [ "serve", "-s", "." ]
+CMD [ "/app" ]
