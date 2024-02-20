@@ -43,7 +43,7 @@ jobs:
           - owner: odrling
             repo: syncplay
             branch: master
-            ref: fd759218ba9053fb48bbfc7b680dfcb93e3706eb
+            ref: becee382a617cc0a71f1829d8538a19e42ea6d62
             plateforms: linux/amd64,linux/arm64
 
     env:
