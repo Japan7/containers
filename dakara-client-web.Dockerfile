@@ -5,7 +5,7 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM svenstaro/miniserve:alpine@sha256:2ad8149c6c4961d9f3872ed8cb898faa95d9e1f1651008bd9ddc5b3b51dbd50f
+FROM svenstaro/miniserve:alpine@sha256:4161d9fcf71e63162015cec31d74ebecacf306ba80510ef1d4431ce3868a622b
 WORKDIR /app
 COPY --from=builder /src/build .
 CMD [ "--spa", "--index", "index.html" ]
