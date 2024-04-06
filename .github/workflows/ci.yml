@@ -35,11 +35,6 @@ jobs:
             branch: master
             ref: e832e3cd90d71ed1a0c85478517cdce300c6ee45
             plateforms: linux/amd64,linux/arm64
-          - owner: mesosphere
-            repo: traefik-forward-auth
-            branch: master
-            ref: 057c6d41a7126080c08f011a7fbaa0f12c16d10a
-            plateforms: linux/amd64,linux/arm64
           - owner: odrling
             repo: syncplay
             branch: master
