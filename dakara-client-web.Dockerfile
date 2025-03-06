@@ -9,7 +9,7 @@ FROM node:lts-alpine
 ENV NODE_ENV=production
 WORKDIR /app
 RUN npm install -g serve
-COPY --from=builder /src/build .
+COPY --from=builder /src/dist .
 ENTRYPOINT [ "serve" ]
 CMD [ "-l", "tcp://0.0.0.0:3000", "-s" ]
 EXPOSE 3000
