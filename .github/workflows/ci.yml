@@ -33,7 +33,7 @@ jobs:
           - owner: DakaraProject
             repo: dakara-server
             branch: master
-            ref: e832e3cd90d71ed1a0c85478517cdce300c6ee45
+            ref: 9c6182f2c50ce693716601e1640f2c7c22c694bd
             plateforms: linux/amd64,linux/arm64
 
     env:
