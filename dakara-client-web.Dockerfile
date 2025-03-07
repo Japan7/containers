@@ -7,6 +7,10 @@ RUN npm run build
 
 FROM docker.io/svenstaro/miniserve:0.29.0-alpine
 WORKDIR /app
-COPY --from=builder /src/dist/static .
-CMD [ "--spa", "--index", "index.html" ]
+COPY --from=builder /src/dist .
+
+# check that index file is at the expected location
+RUN ls static/index.html
+
+CMD [ "--spa", "--index", "static/index.html" ]
 EXPOSE 8080
