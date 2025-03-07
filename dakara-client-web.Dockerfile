@@ -5,11 +5,8 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM node:lts-alpine
-ENV NODE_ENV=production
+FROM docker.io/svenstaro/miniserve:0.29.0-alpine
 WORKDIR /app
-RUN npm install -g serve
 COPY --from=builder /src/dist/static .
-ENTRYPOINT [ "serve" ]
-CMD [ "-l", "tcp://0.0.0.0:3000", "-s" ]
-EXPOSE 3000
+CMD [ "--spa", "--index", "index.html" ]
+EXPOSE 8080
