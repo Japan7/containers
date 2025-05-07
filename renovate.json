@@ -7,7 +7,9 @@
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": ["^\\.github/workflows/[^/]+\\.ya?ml$"],
+      "managerFilePatterns": [
+        "/^\\.github/workflows/[^/]+\\.ya?ml$/"
+      ],
       "matchStrings": [
         "owner: (?<owner>\\S+)\\s+repo: (?<repo>\\S+)\\s+branch: (?<currentValue>\\S+)\\s+ref: (?<currentDigest>\\S+)"
       ],
