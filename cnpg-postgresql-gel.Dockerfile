@@ -1,6 +1,4 @@
-ARG PG_VERSION=17
-ARG VECTOR_VERSION=0.7.4
-FROM ghcr.io/cloudnative-pg/postgresql:${PG_VERSION}
+FROM ghcr.io/cloudnative-pg/postgresql:17
 USER root
-COPY --from=pgvector/pgvector:${VECTOR_VERSION}-pg${PG_VERSION} /lib/postgresql/${PG_VERSION}/lib/vector.so /usr/lib/postgresql/${PG_VERSION}/lib/vector.so
+COPY --from=pgvector/pgvector:0.7.4-pg17 /lib/postgresql/17/lib/vector.so /usr/lib/postgresql/17/lib/vector.so
 USER 26
