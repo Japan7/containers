@@ -128,6 +128,7 @@ jobs:
       matrix:
         include:
           - name: cnpg-postgresql-gel
+            tag: 17
             plateforms: linux/amd64,linux/arm64
 
     env:
@@ -161,8 +162,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
-            type=sha
+            type=raw,value=${{ matrix.tag }}
 
       - name: Build and push Docker image
         id: build-and-push
