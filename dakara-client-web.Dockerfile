@@ -5,7 +5,7 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM docker.io/svenstaro/miniserve:0.29.0-alpine
+FROM docker.io/svenstaro/miniserve:0.30.0-alpine
 WORKDIR /app
 COPY --from=builder /src/dist .
 
