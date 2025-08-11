@@ -45,13 +45,13 @@ jobs:
 
     steps:
       - name: Checkout project repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: ${{ env.REPOSITORY }}
           ref: ${{ matrix.ref }}
 
       - name: Checkout containers repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           path: containers
 
@@ -136,7 +136,7 @@ jobs:
 
     steps:
       - name: Checkout containers repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install cosign
         if: github.ref == 'refs/heads/main'
