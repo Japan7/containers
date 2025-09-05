@@ -1,8 +1,8 @@
 FROM ghcr.io/cloudnative-pg/postgresql:17
 USER root
-COPY --from=pgvector/pgvector:0.7.4-pg17 /lib/postgresql/17/lib/vector.so /usr/lib/postgresql/17/lib/vector.so
+COPY --from=pgvector/pgvector:0.8.1-pg17 /lib/postgresql/17/lib/vector.so /usr/lib/postgresql/17/lib/vector.so
 RUN rm /usr/share/postgresql/17/extension/vector*
-COPY --from=pgvector/pgvector:0.7.4-pg17 \
+COPY --from=pgvector/pgvector:0.8.1-pg17 \
   /usr/share/postgresql/17/extension/vector--0.1.0--0.1.1.sql \
   /usr/share/postgresql/17/extension/vector--0.1.1--0.1.3.sql \
   /usr/share/postgresql/17/extension/vector--0.1.3--0.1.4.sql \
