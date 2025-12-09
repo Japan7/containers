@@ -38,6 +38,11 @@ jobs:
             branch: master
             ref: 833d10aa9acf596e949c93c2c11cb9f252aaed40
             plateforms: linux/amd64,linux/arm64
+          - owner: pydantic
+            repo: mcp-run-python
+            branch: main
+            ref: ff3ebcff1b94fe103c8af560459da9308bee62f5
+            plateforms: linux/amd64,linux/arm64
 
     env:
       REPOSITORY: ${{ matrix.owner }}/${{ matrix.repo }}
