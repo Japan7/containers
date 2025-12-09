@@ -1,7 +1,7 @@
 # source: https://github.com/pydantic/mcp-run-python/pull/26
-FROM python:3.13-slim-bookworm
-COPY --from=ghcr.io/astral-sh/uv:0.8.8 /uv /uvx /bin/
-COPY --from=docker.io/denoland/deno:bin-2.5.6 /deno /bin
+FROM python:3.13-slim
+COPY --from=ghcr.io/astral-sh/uv /uv /uvx /bin/
+COPY --from=docker.io/denoland/deno:bin /deno /bin
 
 # Copy the project into the image
 ADD . /app
