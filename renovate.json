@@ -8,7 +8,9 @@
     {
       "customType": "regex",
       "description": "Update git digest in matrix YAML files",
-      "fileMatch": ["^matrix/.+\\.ya?ml$"],
+      "managerFilePatterns": [
+        "/^matrix/.+\\.ya?ml$/"
+      ],
       "matchStrings": [
         "owner: (?<owner>\\S+)\\s+repo: (?<repo>\\S+)\\s+branch: (?<currentValue>\\S+)\\s+ref: (?<currentDigest>\\S+)"
       ],
@@ -19,7 +21,9 @@
     {
       "customType": "regex",
       "description": "Update git tag in matrix YAML files",
-      "fileMatch": ["^matrix/.+\\.ya?ml$"],
+      "managerFilePatterns": [
+        "/^matrix/.+\\.ya?ml$/"
+      ],
       "matchStrings": [
         "owner: (?<owner>\\S+)\\s+repo: (?<repo>\\S+)\\s+ref: (?<currentValue>\\S+)"
       ],
