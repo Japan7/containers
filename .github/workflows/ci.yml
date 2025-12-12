@@ -41,7 +41,7 @@ jobs:
           - owner: pydantic
             repo: mcp-run-python
             branch: main
-            ref: v0.0.21 # renovate: tag
+            ref: v0.0.22 # renovate: tag
             plateforms: linux/amd64,linux/arm64
 
     env:
