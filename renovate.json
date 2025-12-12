@@ -7,15 +7,23 @@
   "customManagers": [
     {
       "customType": "regex",
-      "managerFilePatterns": [
-        "/^\\.github/workflows/[^/]+\\.ya?ml$/"
-      ],
+      "managerFilePatterns": ["/^\\.github/workflows/[^/]+\\.ya?ml$/"],
       "matchStrings": [
-        "owner: (?<owner>\\S+)\\s+repo: (?<repo>\\S+)\\s+branch: (?<currentValue>\\S+)\\s+ref: (?<currentDigest>\\S+)"
+        "owner: (?<owner>\\S+)\\s+repo: (?<repo>\\S+)\\s+branch: (?<currentValue>\\S+)\\s+ref: (?<currentDigest>\\S+) # renovate: digest"
       ],
       "depNameTemplate": "{{{owner}}}/{{{repo}}}",
       "packageNameTemplate": "https://github.com/{{{owner}}}/{{{repo}}}",
       "datasourceTemplate": "git-refs"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.github/workflows/[^/]+\\.ya?ml$/"],
+      "matchStrings": [
+        "owner: (?<owner>\\S+)\\s+repo: (?<repo>\\S+)\\s+branch: (\\S+)\\s+ref: (?<currentValue>\\S+) # renovate: tag"
+      ],
+      "depNameTemplate": "{{{owner}}}/{{{repo}}}",
+      "packageNameTemplate": "https://github.com/{{{owner}}}/{{{repo}}}",
+      "datasourceTemplate": "git-tags"
     }
   ]
 }
