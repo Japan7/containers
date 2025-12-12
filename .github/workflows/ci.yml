@@ -41,7 +41,7 @@ jobs:
           - owner: pydantic
             repo: mcp-run-python
             branch: main
-            ref: 5ee2eea318725f78c22417e6f8a8374a5c9684ec
+            ref: v0.0.22
             plateforms: linux/amd64,linux/arm64
 
     env:
