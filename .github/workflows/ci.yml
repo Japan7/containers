@@ -21,63 +21,111 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.build-matrix.outputs.matrix }}
+      has-changes: ${{ steps.build-matrix.outputs.has-changes }}
+    steps:
+      - name: Checkout containers repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed matrix files
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          list-files: json
+          filters: |
+            matrix:
+              - 'matrix/**/*.yml'
+              - 'matrix/**/*.yaml'
+
+      - name: Build matrix from changed files
+        id: build-matrix
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            # On workflow_dispatch, build all projects
+            FILES=$(find matrix -name "*.yml" -o -name "*.yaml")
+          elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" && "${{ steps.filter.outputs.matrix }}" == "true" ]]; then
+            # On main push, only changed files
+            FILES=$(echo '${{ steps.filter.outputs.matrix_files }}' | jq -r '.[]')
+          elif [[ "${{ steps.filter.outputs.matrix }}" == "true" ]]; then
+            # On PR/branch, only changed files
+            FILES=$(echo '${{ steps.filter.outputs.matrix_files }}' | jq -r '.[]')
+          else
+            # No changes
+            echo "has-changes=false" >> $GITHUB_OUTPUT
+            echo "matrix={\"include\":[]}" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Convert YAML files to JSON matrix
+          MATRIX_JSON='{"include":[]}'
+          for file in $FILES; do
+            if [ -f "$file" ]; then
+              # Convert YAML to JSON and add to matrix
+              ENTRY=$(yq eval -o=json "$file")
+              MATRIX_JSON=$(echo "$MATRIX_JSON" | jq ".include += [$ENTRY]")
+            fi
+          done
+
+          echo "has-changes=true" >> $GITHUB_OUTPUT
+          echo "matrix=$MATRIX_JSON" >> $GITHUB_OUTPUT
+          echo "Matrix: $MATRIX_JSON"
+
   build:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.has-changes == 'true'
     runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - owner: DakaraProject
-            repo: dakara-client-web
-            branch: master
-            ref: 5585f5c4030e414ef574525bcd719ad3adc5a851 # renovate: digest
-            plateforms: linux/amd64,linux/arm64
-          - owner: DakaraProject
-            repo: dakara-server
-            branch: master
-            ref: 833d10aa9acf596e949c93c2c11cb9f252aaed40 # renovate: digest
-            plateforms: linux/amd64,linux/arm64
-          - owner: pydantic
-            repo: mcp-run-python
-            branch: main
-            ref: v0.0.22 # renovate: tag
-            plateforms: linux/amd64,linux/arm64
+      matrix: ${{ fromJSON(needs.detect-changes.outputs.matrix) }}
 
     env:
-      REPOSITORY: ${{ matrix.owner }}/${{ matrix.repo }}
-      IMAGE_NAME: ${{ github.repository_owner }}/${{ matrix.repo }}
+      REPOSITORY: ${{ matrix.owner && format('{0}/{1}', matrix.owner, matrix.repo) || '' }}
+      IMAGE_NAME: ${{ github.repository_owner }}/${{ matrix.repo || matrix.name }}
 
     steps:
       - name: Checkout project repository
+        if: matrix.owner
         uses: actions/checkout@v6
         with:
           repository: ${{ env.REPOSITORY }}
-          ref: ${{ matrix.ref }}
+          ref: ${{ matrix.ref || matrix.tag }}
 
       - name: Checkout containers repository
         uses: actions/checkout@v6
         with:
-          path: containers
+          path: ${{ matrix.owner && 'containers' || '.' }}
 
       - name: Apply .diff and set Dockerfile
         id: prepare
         run: |
-          DIFF="containers/${{ matrix.repo }}.diff"
-          if [ -f $DIFF ]; then
-            echo Applying $DIFF
-            git apply $DIFF
-          fi
-          CUSTOM_DOCKERFILE="containers/${{ matrix.repo }}.Dockerfile"
-          if [ -f "$CUSTOM_DOCKERFILE" ]; then
-            DOCKERFILE=$CUSTOM_DOCKERFILE
-          elif [ -n "${{ matrix.dockerfile }}" ]; then
-            DOCKERFILE=${{ matrix.dockerfile }}
+          if [ -n "${{ matrix.owner }}" ]; then
+            # Clone mode: check for diff and custom Dockerfile
+            DIFF="containers/${{ matrix.repo }}.diff"
+            if [ -f "$DIFF" ]; then
+              echo "Applying $DIFF"
+              git apply "$DIFF"
+            fi
+            CUSTOM_DOCKERFILE="containers/${{ matrix.repo }}.Dockerfile"
+            if [ -f "$CUSTOM_DOCKERFILE" ]; then
+              DOCKERFILE="$CUSTOM_DOCKERFILE"
+            else
+              DOCKERFILE="Dockerfile"
+            fi
+            TAG="${{ matrix.branch || matrix.tag }}"
           else
-            DOCKERFILE=Dockerfile
+            # No-clone mode: use local Dockerfile
+            DOCKERFILE="cnpg-postgresql-gel.Dockerfile"
+            TAG="${{ matrix.tag }}"
           fi
-          echo Will use $DOCKERFILE
-          echo DOCKERFILE=$DOCKERFILE >> $GITHUB_OUTPUT
+          echo "Will use $DOCKERFILE"
+          echo "DOCKERFILE=$DOCKERFILE" >> $GITHUB_OUTPUT
+          echo "TAG=$TAG" >> $GITHUB_OUTPUT
 
       - name: Install cosign
         if: github.ref == 'refs/heads/main'
@@ -103,7 +151,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=${{ matrix.branch }}
+            type=raw,value=${{ steps.prepare.outputs.TAG }}
 
       - name: Build and push Docker image
         id: build-and-push
@@ -111,71 +159,7 @@ jobs:
         with:
           context: .
           file: ${{ steps.prepare.outputs.DOCKERFILE }}
-          platforms: ${{ matrix.plateforms }}
-          push: ${{ github.ref == 'refs/heads/main' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Sign the published Docker image
-        if: github.ref == 'refs/heads/main'
-        env:
-          TAGS: ${{ steps.meta.outputs.tags }}
-          DIGEST: ${{ steps.build-and-push.outputs.digest }}
-        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
-
-  build-no-clone:
-    runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: cnpg-postgresql-gel
-            tag: 17
-            plateforms: linux/amd64,linux/arm64
-
-    env:
-      IMAGE_NAME: ${{ github.repository_owner }}/${{ matrix.name }}
-
-    steps:
-      - name: Checkout containers repository
-        uses: actions/checkout@v6
-
-      - name: Install cosign
-        if: github.ref == 'refs/heads/main'
-        uses: sigstore/cosign-installer@v3
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Setup Docker buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log into registry ${{ env.REGISTRY }}
-        if: github.ref == 'refs/heads/main'
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=raw,value=${{ matrix.tag }}
-
-      - name: Build and push Docker image
-        id: build-and-push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ${{ matrix.name }}.Dockerfile
-          platforms: ${{ matrix.plateforms }}
+          platforms: ${{ matrix.platforms }}
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
