@@ -1,8 +1,8 @@
 # source: https://github.com/pydantic/mcp-run-python/pull/26
 FROM python:3.14-slim
-COPY --from=ghcr.io/astral-sh/uv /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.9.17 /uv /uvx /bin/
 # FIXME: https://github.com/pydantic/mcp-run-python/pull/33
-COPY --from=docker.io/denoland/deno:bin-2.5.5 /deno /bin
+COPY --from=denoland/deno:2.5.5 /usr/bin/deno /usr/bin/deno
 
 # Copy the project into the image
 ADD . /app
