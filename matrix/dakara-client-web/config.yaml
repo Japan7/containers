@@ -1,0 +1,5 @@
+owner: DakaraProject
+repo: dakara-client-web
+branch: master
+ref: 5585f5c4030e414ef574525bcd719ad3adc5a851
+platforms: linux/amd64,linux/arm64

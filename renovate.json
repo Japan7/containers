@@ -7,9 +7,10 @@
   "customManagers": [
     {
       "customType": "regex",
-      "managerFilePatterns": ["/^\\.github/workflows/[^/]+\\.ya?ml$/"],
+      "description": "Update git digest in matrix YAML files",
+      "managerFilePatterns": ["matrix/*/config.yaml"],
       "matchStrings": [
-        "owner: (?<owner>\\S+)\\s+repo: (?<repo>\\S+)\\s+branch: (?<currentValue>\\S+)\\s+ref: (?<currentDigest>\\S+) # renovate: digest"
+        "owner: (?<owner>\\S+)\\s+repo: (?<repo>\\S+)\\s+branch: (?<currentValue>\\S+)\\s+ref: (?<currentDigest>\\S+)"
       ],
       "depNameTemplate": "{{{owner}}}/{{{repo}}}",
       "packageNameTemplate": "https://github.com/{{{owner}}}/{{{repo}}}",
@@ -17,9 +18,10 @@
     },
     {
       "customType": "regex",
-      "managerFilePatterns": ["/^\\.github/workflows/[^/]+\\.ya?ml$/"],
+      "description": "Update git tag in matrix YAML files",
+      "managerFilePatterns": ["matrix/*/config.yaml"],
       "matchStrings": [
-        "owner: (?<owner>\\S+)\\s+repo: (?<repo>\\S+)\\s+branch: (\\S+)\\s+ref: (?<currentValue>\\S+) # renovate: tag"
+        "owner: (?<owner>\\S+)\\s+repo: (?<repo>\\S+)\\s+tag: (?<currentValue>\\S+)"
       ],
       "depNameTemplate": "{{{owner}}}/{{{repo}}}",
       "packageNameTemplate": "https://github.com/{{{owner}}}/{{{repo}}}",

@@ -1,0 +1,5 @@
+owner: DakaraProject
+repo: dakara-server
+branch: master
+ref: 833d10aa9acf596e949c93c2c11cb9f252aaed40
+platforms: linux/amd64,linux/arm64
