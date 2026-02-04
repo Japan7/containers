@@ -1,6 +1,6 @@
 # source: https://github.com/pydantic/mcp-run-python/pull/26
 FROM python:3.14-slim
-COPY --from=ghcr.io/astral-sh/uv:0.9.29 /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.9.30 /uv /uvx /bin/
 COPY --from=denoland/deno:2.6.8 /usr/bin/deno /usr/bin/deno
 
 # Copy the project into the image
