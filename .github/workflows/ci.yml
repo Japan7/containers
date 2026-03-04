@@ -4,18 +4,12 @@ on:
   push:
     branches: ["main", "renovate/*"]
   pull_request:
-    branches:
-      - "main"
+    branches: ["main"]
   workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
-permissions:
-  contents: read
-  packages: write
-  id-token: write
 
 env:
   REGISTRY: ghcr.io
@@ -24,8 +18,9 @@ jobs:
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.build-matrix.outputs.matrix }}
-      has-changes: ${{ steps.build-matrix.outputs.has-changes }}
+      build_matrix: ${{ steps.build-matrix.outputs.build_matrix }}
+      merge_matrix: ${{ steps.build-matrix.outputs.merge_matrix }}
+      has_changes: ${{ steps.build-matrix.outputs.has_changes }}
     steps:
       - name: Checkout containers repository
         uses: actions/checkout@v6
@@ -58,39 +53,63 @@ jobs:
             PROJECTS=$(echo "$CHANGED_FILES" | cut -d'/' -f2 | sort -u)
           else
             # No changes
-            echo "has-changes=false" >> $GITHUB_OUTPUT
-            echo "matrix={\"include\":[]}" >> $GITHUB_OUTPUT
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "build_matrix={\"include\":[]}" >> $GITHUB_OUTPUT
+            echo "merge_matrix={\"include\":[]}" >> $GITHUB_OUTPUT
             exit 0
           fi
 
-          # Convert YAML config files to JSON matrix
-          MATRIX_JSON='{"include":[]}'
+          # Convert YAML config files to JSON matrices
+          BUILD_MATRIX_JSON='{"include":[]}'
+          MERGE_MATRIX_JSON='{"include":[]}'
           for project in $PROJECTS; do
             config_file="matrix/$project/config.yaml"
             if [ -f "$config_file" ]; then
               # Convert YAML to JSON and add project name
               ENTRY=$(yq eval -o=json "$config_file" | jq -c ". + {project: \"$project\"}")
-              MATRIX_JSON=$(echo "$MATRIX_JSON" | jq -c ".include += [$ENTRY]")
+
+              MERGE_MATRIX_JSON=$(echo "$MERGE_MATRIX_JSON" | jq -c ".include += [$ENTRY]")
+
+              while IFS= read -r platform; do
+                case "$platform" in
+                  linux/arm64)
+                    runner="ubuntu-24.04-arm"
+                    ;;
+                  *)
+                    runner="ubuntu-24.04"
+                    ;;
+                esac
+
+                BUILD_ENTRY=$(echo "$ENTRY" | jq -c --arg platform "$platform" --arg runner "$runner" '. + {platform: $platform, runner: $runner}')
+                BUILD_MATRIX_JSON=$(echo "$BUILD_MATRIX_JSON" | jq -c ".include += [$BUILD_ENTRY]")
+              done < <(echo "$ENTRY" | jq -r '.platforms | split(",")[] | gsub("\\s+"; "")')
             fi
           done
 
-          echo "has-changes=true" >> $GITHUB_OUTPUT
-          echo "matrix=$MATRIX_JSON" >> $GITHUB_OUTPUT
-          echo "Matrix: $MATRIX_JSON"
+          if [ "$(echo "$BUILD_MATRIX_JSON" | jq '.include | length')" -eq 0 ]; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "build_matrix={\"include\":[]}" >> $GITHUB_OUTPUT
+            echo "merge_matrix={\"include\":[]}" >> $GITHUB_OUTPUT
+            exit 0
+          fi
 
+          echo "has_changes=true" >> $GITHUB_OUTPUT
+          echo "build_matrix=$BUILD_MATRIX_JSON" >> $GITHUB_OUTPUT
+          echo "merge_matrix=$MERGE_MATRIX_JSON" >> $GITHUB_OUTPUT
+          echo "Build matrix: $BUILD_MATRIX_JSON"
+          echo "Merge matrix: $MERGE_MATRIX_JSON"
+
+  # https://docs.docker.com/build/ci/github-actions/multi-platform/#distribute-build-across-multiple-runners
   build:
     needs: detect-changes
-    if: needs.detect-changes.outputs.has-changes == 'true'
-    runs-on: ubuntu-latest
-
+    if: needs.detect-changes.outputs.has_changes == 'true'
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.detect-changes.outputs.matrix) }}
-
+      matrix: ${{ fromJSON(needs.detect-changes.outputs.build_matrix) }}
+    runs-on: ${{ matrix.runner }}
     env:
       REPOSITORY: ${{ matrix.owner && format('{0}/{1}', matrix.owner, matrix.repo) || '' }}
-      IMAGE_NAME: ${{ github.repository_owner }}/${{ matrix.repo || matrix.name }}
-
+      IMAGE_NAME: japan7/${{ matrix.repo || matrix.name }}
     steps:
       - name: Checkout project repository
         if: matrix.owner
@@ -107,6 +126,9 @@ jobs:
       - name: Apply .diff and set Dockerfile
         id: prepare
         run: |
+          platform=${{ matrix.platform }}
+          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
+
           if [ -n "${{ matrix.owner }}" ]; then
             # Clone mode: check for diff and use matrix Dockerfile
             DIFF="containers/matrix/${{ matrix.project }}/patch.diff"
@@ -120,27 +142,20 @@ jobs:
             else
               DOCKERFILE="Dockerfile"
             fi
-            TAG="${{ matrix.branch || matrix.tag }}"
           else
             # No-clone mode: use matrix Dockerfile
             DOCKERFILE="matrix/${{ matrix.project }}/Dockerfile"
-            TAG="${{ matrix.tag }}"
           fi
           echo "Will use $DOCKERFILE"
           echo "DOCKERFILE=$DOCKERFILE" >> $GITHUB_OUTPUT
-          echo "TAG=$TAG" >> $GITHUB_OUTPUT
 
-      - name: Install cosign
-        if: github.ref == 'refs/heads/main'
-        uses: sigstore/cosign-installer@v3
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
-
-      - name: Setup Docker buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log into registry ${{ env.REGISTRY }}
+      - name: Login to ${{ env.REGISTRY }}
         if: github.ref == 'refs/heads/main'
         uses: docker/login-action@v4
         with:
@@ -148,30 +163,78 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract Docker metadata
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ steps.prepare.outputs.DOCKERFILE }}
+          platforms: ${{ matrix.platform }}
+          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          outputs: type=image,push-by-digest=true,name-canonical=true,push=${{ github.ref == 'refs/heads/main' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Export digest
+        run: |
+          mkdir -p ${{ runner.temp }}/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v7
+        with:
+          name: digests-${{ matrix.project }}-${{ env.PLATFORM_PAIR }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    if: github.ref == 'refs/heads/main'
+    needs: [detect-changes, build]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.detect-changes.outputs.merge_matrix) }}
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: japan7/${{ matrix.repo || matrix.name }}
+      TAG: ${{ matrix.branch || matrix.tag }}
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v8
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-${{ matrix.project }}-*
+          merge-multiple: true
+
+      - name: Login to ${{ env.REGISTRY }}
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=${{ steps.prepare.outputs.TAG }}
+            type=raw,value=${{ env.TAG }}
 
-      - name: Build and push Docker image
-        id: build-and-push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ${{ steps.prepare.outputs.DOCKERFILE }}
-          platforms: ${{ matrix.platforms }}
-          push: ${{ github.ref == 'refs/heads/main' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Create manifest list and push
+        working-directory: ${{ runner.temp }}/digests
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@sha256:%s ' *)
 
-      - name: Sign the published Docker image
-        if: github.ref == 'refs/heads/main'
-        env:
-          TAGS: ${{ steps.meta.outputs.tags }}
-          DIGEST: ${{ steps.build-and-push.outputs.digest }}
-        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG }}
