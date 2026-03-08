@@ -7,6 +7,8 @@ RUN npm run build
 
 FROM docker.io/caddy:2.11.2-alpine
 COPY --from=builder /src/dist /srv
+# check that index file is at the expected location
+RUN ls static/index.html
 COPY <<EOF /etc/caddy/Caddyfile
 {
     admin off
