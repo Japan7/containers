@@ -5,7 +5,7 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM docker.io/caddy:2.11.3-alpine
+FROM docker.io/caddy:2.11.4-alpine
 COPY --from=builder /src/dist /srv
 # check that index file is at the expected location
 RUN ls static/index.html
