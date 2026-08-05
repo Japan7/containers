@@ -1,5 +1,5 @@
 owner: odrling
 repo: dakara-server
 branch: update-deps
-ref: 7c69125d70f84cc2a3239c33f231541a342358c1
+ref: 982bfc5c0313ea5d0872ec5192fb756ad8b796d0
 platforms: linux/amd64,linux/arm64
