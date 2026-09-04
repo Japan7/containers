@@ -36,6 +36,7 @@ jobs:
             matrix:
               - 'matrix/*/config.yaml'
               - 'matrix/*/Dockerfile'
+              - 'matrix/*/patch.diff'
 
       - name: Build matrix from changed files
         id: build-matrix
