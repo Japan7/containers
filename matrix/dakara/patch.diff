@@ -1,6 +1,31 @@
+diff --git a/Dockerfile b/Dockerfile
+index 1f5edf0..988db5b 100644
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -16,12 +16,12 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+     AUTOBAHN_USE_NVX=0
+ 
+ RUN apk add --no-cache \
+-        "curl=8.20.0-r0" \
+-        "nginx=1.28.3-r7" \
+-        "py3-pip=25.1.1-r1" \
+-        "python3=3.12.13-r0" \
+-        "sudo=1.9.17_p2-r0" \
+-        "unzip=6.0-r16"
++        curl \
++        nginx \
++        py3-pip \
++        python3 \
++        sudo \
++        unzip
+ 
+ # install dependencies
+ RUN --mount=source=requirements.txt,target=/requirements.txt \
+diff --git a/requirements_prod.txt b/requirements_prod.txt
+index a43f32c..a4ba5e0 100644
 --- a/requirements_prod.txt
 +++ b/requirements_prod.txt
-@@ -3,3 +3,4 @@
+@@ -3,3 +3,4 @@ dj-email-url>=1.0.6,<1.1.0
  django-redis>=7.0.0,<7.1.0
  gunicorn>=26.0.0,<26.1.0
  mysql-connector-python>=26.7.0,<26.8.0
