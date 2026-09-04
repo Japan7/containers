@@ -1,4 +1,0 @@
-owner: pydantic
-repo: mcp-run-python
-tag: v0.0.22
-platforms: linux/amd64,linux/arm64
