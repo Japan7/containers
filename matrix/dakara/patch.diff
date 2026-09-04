@@ -1,0 +1,7 @@
+--- a/requirements_prod.txt
++++ b/requirements_prod.txt
+@@ -3,3 +3,4 @@
+ django-redis>=7.0.0,<7.1.0
+ gunicorn>=26.0.0,<26.1.0
+ mysql-connector-python>=26.7.0,<26.8.0
++psycopg[binary]>=3.2,<4.0

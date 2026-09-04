@@ -1,0 +1,6 @@
+owner: DakaraProject
+repo: dakara-server
+tag: &tag 1.10.0
+platforms: linux/amd64,linux/arm64
+build_args:
+  FRONT_VERSION: *tag

@@ -21,7 +21,7 @@
       "description": "Update git tag in matrix YAML files",
       "managerFilePatterns": ["matrix/*/config.yaml"],
       "matchStrings": [
-        "owner: (?<owner>\\S+)\\s+repo: (?<repo>\\S+)\\s+tag: (?<currentValue>\\S+)"
+        "owner: (?<owner>\\S+)\\s+repo: (?<repo>\\S+)\\s+tag: (?:&\\S+\\s+)?(?<currentValue>\\S+)"
       ],
       "depNameTemplate": "{{{owner}}}/{{{repo}}}",
       "packageNameTemplate": "https://github.com/{{{owner}}}/{{{repo}}}",

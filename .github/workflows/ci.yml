@@ -149,6 +149,16 @@ jobs:
           echo "Will use $DOCKERFILE"
           echo "DOCKERFILE=$DOCKERFILE" >> $GITHUB_OUTPUT
 
+      - name: Format build args
+        run: |
+          BUILD_ARGS=$(echo '${{ toJSON(matrix.build_args) }}' | jq -r 'to_entries | map("\(.key)=\(.value)") | join("\n")')
+          echo "Build args: $BUILD_ARGS"
+          {
+            echo 'BUILD_ARGS<<EOF'
+            echo "$BUILD_ARGS"
+            echo 'EOF'
+          } >> $GITHUB_ENV
+
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v6
@@ -173,6 +183,7 @@ jobs:
           context: .
           file: ${{ steps.prepare.outputs.DOCKERFILE }}
           platforms: ${{ matrix.platform }}
+          build-args: ${{ env.BUILD_ARGS }}
           labels: ${{ steps.meta.outputs.labels }}
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           outputs: type=image,push-by-digest=true,name-canonical=true,push=${{ github.ref == 'refs/heads/main' }}
